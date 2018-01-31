@@ -10,7 +10,8 @@
 #include "dei_rkck.h"
 #include "parser.h"
 //** mjb:seos:add external integration routine. relative path to gsl library
-#include <./../../../gsl-2.4/gsl/gsl_integration.h>
+//#include <./../../../gsl-2.4/gsl/gsl_integration.h>
+#include <gsl/gsl_integration.h>
 enum spatial_curvature {flat,open,closed};
 
 /**
