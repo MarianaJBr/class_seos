@@ -9,6 +9,7 @@
 #include "arrays.h"
 #include "dei_rkck.h"
 #include "parser.h"
+
 //** mjb:seos:add external integration routine. relative path to gsl library
 //#include <./../../../gsl-2.4/gsl/gsl_integration.h>
 #include <gsl/gsl_integration.h>
@@ -26,13 +27,12 @@ enum spatial_curvature {flat,open,closed};
 
 //mjb:seos:comment: 290118 arguments for integrand of equation of state
 //mjb: TODO check whether this is necessary
-struct integrand_args
-{
-
+// oarodriguez: it is, for GSL...
+typedef struct {
 	double wa_fld;
 	double q_fld;
 	double zt_fld;
-};
+} background_w_fl_i_args;
 
 
 struct background
@@ -406,6 +406,10 @@ extern "C" {
 			   short return_format,
 			   double * pvecback
 			   );
+
+  double background_w_fl_i(
+          double lna,
+          void *params);
 
   int background_w_fld(
                        struct background * pba,

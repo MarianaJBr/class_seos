@@ -458,6 +458,39 @@ int background_functions(
 
 }
 
+
+
+/**
+ * Integrand for the fluid equation of state. This function is intended to be
+ * used with GSL integration routines.
+ *
+ * @param lna           Input: current value of scale factor
+ * @param params        Input: pointer to the structure with the Eos
+ *                      parameters.
+ * @return The value of the equation of state.
+ */
+/* mjb:seos: insert the integral of w(a) HERE*/
+/* integral_fld = 3*integral_aini^a0{(1+w(a')/(a')da'} which can be put in terms of u=lna
+   as integral_fld = 3*integral_lnaini^lna0{1+w(exp(lna'))dlna'} */
+double background_w_fl_i(
+        double lna,
+        void *params) {
+
+    // void pointer params can point to any type of data
+    // We make a type casting
+    background_w_fl_i_args *args = (background_w_fl_i_args *) params;
+
+    //mjb: new parameters for eos, q and zt in exponential form:
+    double wa = args->wa_fld;
+    double q = args->q_fld;
+    double zt = args->zt_fld;
+
+    //return 1. / (1. + pow(zt * exp(lna) / (1. - exp(lna)), q));
+    //return wa * pow(1. - lna, q) / (pow((lna * zt), q) + pow(1. - lna, q) * lna);
+    return wa * pow(1 - exp(lna), q) / (pow(zt * exp(lna), q) + pow(1 - exp(lna), q));
+}
+
+
 /**
  * Single place where the fluid equation of state is
  * defined. Parameters of the function are passed through the
@@ -471,7 +504,6 @@ int background_functions(
  * @param integral_fld   Output: function \f$ \int_{a}^{a_0} da 3(1+w_{fld})/a \f$
  * @return the error status
  */
-
 int background_w_fld(
         struct background *pba,
         double a,
@@ -489,7 +521,6 @@ int background_w_fld(
     double wa = pba->wa_fld;
     double q = pba->q_fld;
     double zt = pba->zt_fld;
-
 
 
     *w_fld = w0 + wa * pow((a0 - a), q) / (pow(a * zt, q) + pow((a0 - a), q));
@@ -534,7 +565,7 @@ int background_w_fld(
 
     /** note: of course you can generalise these formulas to anything,
       defining new parameters pba->w..._fld. Just remember that so
-      far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
+      far, HyRec explicitly assumes that w(a)= w0 + wa (1-a/a0); but
       Recfast does not assume anything */ /*mjb:seos: have this in mind?*/
 
     return _SUCCESS_;
@@ -1973,56 +2004,43 @@ int background_initial_conditions(
     [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
     calling background_w_fld */
 
-        /* mjb:seos: insert the integral of w(a) HERE*/
-        /* integral_fld = 3*integral_aini^a0{(1+w(a')/(a')da'} which can be put in terms of u=lna
-           as integral_fld = 3*integral_lnaini^lna0{1+w(exp(lna'))dlna'} */
+        /*local variables definition */
+        //double w0 = pba->w0_fld;
 
-        int integral(
-                struct background *pba,
-                //double a_today,
-                //double a_rel,
-                //double lna,
-                double *integral_fld) {
+        /* Integrator variables */
+        double quad_result, error;
+        double eps_abs = 1e-6; //mjb: made this values smaller//
+        double eps_rel = 1e-6;
+        size_t max_iter = 1000;
 
-            /*local variables definition */
-            double w0 = pba->w0_fld;
-            double q = pba->q_fld;
-            double zt = pba->zt_fld;
-            double wa = pba->wa_fld;
-            double lna;
-            double integrand_fld;
-            double quad_result;
-            double error;
-            /*integration variables*/
-            double eps_abs = 1e-6; //mjb: made this values smaller//
-            double eps_rel = 1e-6;
-            double size_t, max_iter = 1000;
+        // GSL data structures.
+        gsl_integration_workspace *ws
+                = gsl_integration_workspace_alloc(max_iter);
 
-            /*mjb: at this point I need to define the integrand*/
+        /*mjb: at this point I need to define the background_w_fl_i*/
+        /* oarodriguez: not at this point, see background_w_fl_i function. */
+        // Here we initialize the integrand arguments.
+        background_w_fl_i_args i_args;
+        i_args.wa_fld = pba->wa_fld;
+        i_args.q_fld = pba->q_fld;
+        i_args.zt_fld = pba->zt_fld;
 
-            integrand_fld = wa * pow((1. - exp(lna)), q) /
-                          (pow((zt * exp(lna)), q) + pow((1. - exp(lna)), q));
+        gsl_function integrand_spec;
+        integrand_spec.params = &i_args;
+        integrand_spec.function = &background_w_fl_i;
 
-            gsl_integration_workspace *ws
-                    = gsl_integration_workspace_alloc(max_iter);
+        /*integral --> result_integral*/
+        gsl_integration_qag(&integrand_spec, log(1.0), log(a),
+                            eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
+                            ws, &quad_result, &error);
 
-            gsl_function integrand_spec;
-            integrand_spec.function = &integrand_fld;
-            integrand_spec.params = &args;
-
-            /*integral --> result_integral*/
-            gsl_integration_qag(&integrand_spec, log(1.0), log(a),
-                                eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
-                                ws, &quad_result, &error);
-
-            *integral_fld = result_integral;
-
-            return _SUCCESS_;
-        }
-
+        integral_fld = quad_result;
 
         /* rho_fld at initial time */
         pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
+
+        // Deallocate the used memory.
+        gsl_integration_workspace_free(ws);
 
     }
 
@@ -2513,11 +2531,11 @@ int integral(
 
 /*mjb:seos:add integration for the eos*/
 
-/*double integrand(double lna, void *params) {
+/*double background_w_fl_i(double lna, void *params) {
 
     // void pointer params can point to any type of data
     // We make a type casting
-    struct integrand_args *args = (struct integrand_args *) params;
+    struct background_w_fl_i_args *args = (struct background_w_fl_i_args *) params;
 
     //mjb: new parameters for eos, q and zt in exponential form:
     double wa = args->wa_fld;
@@ -2543,7 +2561,7 @@ double eps_rel = 1e-16;
 size_t max_iter = 1000;
 double rho2;
 
-struct integrand_args;
+struct background_w_fl_i_args;
 
 // Assign values to the parameters.
 //double a_rel = 1e-5; //
@@ -2556,7 +2574,7 @@ gsl_integration_workspace *ws
         = gsl_integration_workspace_alloc(max_iter);
 
 gsl_function integrand_spec;
-integrand_spec.function = &integrand;
+integrand_spec.function = &background_w_fl_i;
 integrand_spec.params = &args;
 
 gsl_integration_qag(&integrand_spec, log(1.0), log(a_rel), eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
