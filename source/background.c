@@ -1978,19 +1978,18 @@ int background_initial_conditions(
       eps_abs = 1e-12;
       eps_rel = 1e-16;
 
-
       /*mjb: at this point I need to define the integrand*/
 
       myintegrand = wa * (pow(1. - exp(lna)), q) /
                            (pow((zt * exp(lna)), q) + pow((1. - exp(lna)), q));
 
-
       gsl_integration_workspace *ws
               = gsl_integration_workspace_alloc(max_iter);
 
       /*integral --> result_integral*/
-      gsl_integration_qag(&integrand_spec, log(1.0), log(a_rel), eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
-      ws, &quad_result, &error);
+      gsl_integration_qag(&integrand_spec, log(1.0), log(a_rel),
+                          eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
+                          ws, &quad_result, &error);
 
       *integral_fld = result_integral;
 
@@ -2395,7 +2394,8 @@ double ddV_p_scf(
   return  scf_alpha*(scf_alpha - 1.)*pow(phi -  scf_B,  scf_alpha - 2);
 }
 
-/** Fianlly we can obtain the overall potential \f$ V = V_p*V_e \f$
+/**
+ * Finally we can obtain the overall potential \f$ V = V_p*V_e \f$
  */
 
 double V_scf(
@@ -2415,3 +2415,118 @@ double ddV_scf(
                double phi) {
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
 }
+
+//******************************************************************//
+// mjb:copy from last draft//
+// implementation still not working //
+// mjb:seos:300118
+/*
+int integral(
+        struct background *pba,
+        double a_today,
+        double a_ini,
+        double lna,
+        double *integral_fld) {
+  */
+/*local variables definition *//*
+
+  double w0;
+  double q;
+  double zt;
+  double wa;
+  double lna;
+  double quad_result, error;
+
+  */
+/*integration variables*//*
+
+  double eps_abs = 1e-12;
+  double eps_rel = 1e-16;
+  size_t max_iter = 1000;
+
+  w0 = pba->w0_fld;
+  wa = pba->wa_fld;
+  q = pba->q_fld;
+  zt = pba->zt_fld;
+  eps_abs = 1e-12;
+  eps_rel = 1e-16;
+
+
+
+  */
+/*integrand*//*
+
+
+  myintegrand = wa * ((pow((1. - exp(lna)), q) /
+                       (pow((zt * exp(lna)), q) + pow((1. - exp(lna)), q));
+
+
+  gsl_integration_workspace *ws
+          = gsl_integration_workspace_alloc(max_iter);
+
+  */
+/*integral --> result_integral*//*
+
+  //gsl_integration_qag(&integrand_spec, log(1.0), log(a_rel), eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
+  //ws, &quad_result, &error);
+  *integral_fld = result_integral;
+
+  return _SUCCESS_;
+}
+*/
+
+///*******************mjb***********************************//
+//**************** sandbox ******************************///
+//**************** DO NOT TRUST THIS. *****************////
+//****  this was copied from the 1st implementation ********///
+
+/*mjb:seos:add integration for the eos*/
+
+/*double integrand(double lna, void *params) {
+
+    // void pointer params can point to any type of data
+    // We make a type casting
+    struct integrand_args *args = (struct integrand_args *) params;
+
+    //mjb: new parameters for eos, q and zt in exponential form:
+    double wa = args->wa_fld;
+    double q = args->q_fld;
+    double zt = args->zt_fld;
+
+    //return 1. / (1. + pow(zt * exp(lna) / (1. - exp(lna)), q));
+    return wa * ((pow(1 - exp(lna), q) / (pow(zt * exp(lna), q) + pow(1 - exp(lna), q));
+
+    //return wa * pow(1. - lna, q) / (pow((lna * zt), q) + pow(1. - lna, q) * lna);
+}*/
+
+
+
+/*
+
+
+double quad_result, error;
+
+// Integration parameters.
+double eps_abs = 1e-12;
+double eps_rel = 1e-16;
+size_t max_iter = 1000;
+double rho2;
+
+struct integrand_args;
+
+// Assign values to the parameters.
+//double a_rel = 1e-5; //
+args.wa_fld = pba->wa_fld;
+args.q_fld = pba->q_fld;
+args.zt_fld = pba->zt_fld;
+
+
+gsl_integration_workspace *ws
+        = gsl_integration_workspace_alloc(max_iter);
+
+gsl_function integrand_spec;
+integrand_spec.function = &integrand;
+integrand_spec.params = &args;
+
+gsl_integration_qag(&integrand_spec, log(1.0), log(a_rel), eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
+        ws, &quad_result, &error);*/
