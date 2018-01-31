@@ -9,7 +9,8 @@
 #include "arrays.h"
 #include "dei_rkck.h"
 #include "parser.h"
-
+//** mjb:seos:add external integration routine. relative path to gsl library
+#include <./../../../gsl-2.4/gsl/gsl_integration.h>
 enum spatial_curvature {flat,open,closed};
 
 /**
@@ -21,6 +22,17 @@ enum spatial_curvature {flat,open,closed};
  * function of time and scale factor, used for interpolation in other
  * modules.
  */
+
+//mjb:seos:comment: 290118 arguments for integrand of equation of state
+//mjb: TODO check whether this is necessary
+struct integrand_args
+{
+
+	double wa_fld;
+	double q_fld;
+	double zt_fld;
+};
+
 
 struct background
 {
@@ -51,7 +63,9 @@ struct background
 
   double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid */
   double w0_fld; /**< \f$ w0_{DE} \f$: current fluid equation of state parameter */
-  double wa_fld; /**< \f$ wa_{DE} \f$: fluid equation of state parameter derivative */
+  double wa_fld; /**mjb:seos:< \f$ wa_{DE} \f$: fluid equation of state parameter defined as w(z>>0)-w(z=0) */
+  double q_fld;  /**mjb:seos:< \f$ q_{DE} \f$: fluid equation of state parameter for the steepness of the transition */
+  double zt_fld; /**mjb:seos:< \f$ zt_{DE} \f$: fluid equation of state parameter for the transition redshift */
 
   double cs2_fld; /**< \f$ c^2_{s~DE} \f$: sound speed of the fluid
 		     in the frame comoving with the fluid (so, this is

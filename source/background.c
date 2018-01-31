@@ -267,7 +267,11 @@ int background_functions(
   /* index for n_ncdm species */
   int n_ncdm;
   /* fluid's time-dependent equation of state parameter */
+  /*mjb:seos: general structure for equation of state w(a) => 'w_fld',
+   * its derivative => 'dw_over_da'
+   * and its integra => 'integral_fld*/
   double w_fld, dw_over_da, integral_fld;
+  /*TODO: check mjb:seos: maybe we need to declare inside this background_functions structure the variables again*/
   /* scale factor */
   double a;
   /* scalar field quantities */
@@ -474,14 +478,31 @@ int background_w_fld(
                      double * integral_fld) {
 
   /** - first, define the function w(a) */
-  *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+  /** mjb:seos: here we define seos instead of CPL*/
+  /**w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);*/
+  *w_fld = pba->w0_fld + pba->wa_fld * (pow(pba->a_today - a), pba->q_fld) /
+                         (pow(a * pba->zt_fld, pba->q_fld) + pow((pba->a_today - a), pba->q_fld))
 
   /** - then, give the corresponding analytic derivative dw/da (used
         by perturbation equations; we could compute it numerically,
         but with a loss of precision; as long as there is a simple
         analytic expression of the derivative of the previous
         function, let's use it! */
-  *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+  /*mjb:seos: we add the corresponding derivative of the eos w(a) wrt a */
+                         /* numerator = a0 wa*q*(a*zt)^q*(a0-a)^(q-1))  */
+                         /* denominator = a ( (a0-a)^q + (a*zt)^q )^2  */
+                         /* dw/da = -numerator/denominator  */
+
+  /**dw_over_da_fld = - pba->wa_fld / pba->a_today;*/
+  * dw_over_da_fld =
+          -(pba->a_today * pba->wa_fld * pba->q_fld * (pow(a * pba->zt_fld, pba->q_fld)) *
+            (pow((pba->a_today - a), (pba->q_fld - 1.)))
+          ) /
+          (a * pow(
+                    (pow((a * pba->zt_fld), pba->q_fld) +
+                           pow((pba->a_today - a), pba->q_fld)
+                    ), 2)
+          );
 
   /** - finally, give the analytic solution of the following integral:
         \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
@@ -493,12 +514,17 @@ int background_w_fld(
         implement a numerical calculation of this integral only for
         a=a_ini, using for instance Romberg integration. It should be
         fast, simple, and accurate enough. */
+
+  /*mjb:seos: following the suggestion we make this equal to zero here*/
+/*
   *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+*/
+  *integral_fld = 0.;
 
   /** note: of course you can generalise these formulas to anything,
       defining new parameters pba->w..._fld. Just remember that so
       far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
-      Recfast does not assume anything */
+      Recfast does not assume anything */ /*mjb:seos: have this in mind?*/
 
   return _SUCCESS_;
 }
@@ -1802,6 +1828,7 @@ int background_solve(
  * @return the error status
  */
 
+/*mjb:seos: we need to add the integral of the w(a) inside this structure*/
 int background_initial_conditions(
                                   struct precision *ppr,
                                   struct background *pba,
@@ -1911,6 +1938,7 @@ int background_initial_conditions(
     rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
 
     /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
+    /*mjb:seos: at this point this calls the value of &integral_fld and find it is zero as defined above*/
     class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
 
     /* Note: for complicated w_fld(a) functions with no simple
@@ -1918,6 +1946,57 @@ int background_initial_conditions(
     numerically the simple 1d integral [int_{a_ini}^{a_0} 3
     [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
     calling background_w_fld */
+
+    /*mjb:seos: insert the integral of w(a) HERE*/
+    /*integral_fld = 3*integral_a0^a{(1+w(a')/(1+a')da'} which can be put in terms of u=lna
+      as integral_fld = 3*integral_0^lna{1+w(lna')dlna'}*/
+
+    int integral(
+            struct background *pba,
+            double a_today,
+            double a_rel,
+            double lna,
+            double *integral_fld) {
+      /*local variables definition */
+      double w0;
+      double q;
+      double zt;
+      double wa;
+      double lna;
+      double quad_result;
+      double error;
+
+      /*integration variables*/
+      double eps_abs = 1e-12;
+      double eps_rel = 1e-16;
+      size_t max_iter = 1000;
+
+      w0 = pba->w0_fld;
+      wa = pba->wa_fld;
+      q = pba->q_fld;
+      zt = pba->zt_fld;
+      eps_abs = 1e-12;
+      eps_rel = 1e-16;
+
+
+      /*mjb: at this point I need to define the integrand*/
+
+      myintegrand = wa * (pow(1. - exp(lna)), q) /
+                           (pow((zt * exp(lna)), q) + pow((1. - exp(lna)), q));
+
+
+      gsl_integration_workspace *ws
+              = gsl_integration_workspace_alloc(max_iter);
+
+      /*integral --> result_integral*/
+      gsl_integration_qag(&integrand_spec, log(1.0), log(a_rel), eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
+      ws, &quad_result, &error);
+
+      *integral_fld = result_integral;
+
+      return _SUCCESS_;
+    }
+
 
     /* rho_fld at initial time */
     pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
