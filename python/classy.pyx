@@ -833,6 +833,12 @@ cdef class Class:
 
     def Omega_Lambda(self):
         return self.ba.Omega0_lambda
+    # mjb:seos
+    def q_fld(self):
+        return self.ba.q_fld
+
+    def zt_fld(self):
+        return self.ba.zt_fld
 
     def Omega_g(self):
         return self.ba.Omega0_g
@@ -1359,8 +1365,16 @@ cdef class Class:
                 value = self.ba.h*100
             elif name == 'Omega0_lambda' or name == 'Omega_Lambda':
                 value = self.ba.Omega0_lambda
-            elif name == 'Omega0_fld':
-                value = self.ba.Omega0_fld
+            elif name == 'q_fld':
+                value = self.ba.q_fld
+            elif name == 'zt_fld':
+                value = self.ba.zt_fld
+           # elif name == 'Omega0_fld': # mjb:seos
+           #     value = self.ba.Omega0_fld
+           # elif name == 'w0_fld':
+           #     value = self.ba.w0_fld
+           # elif name == 'wa_fld':
+           #     value = self.ba.wa_fld
             elif name == 'age':
                 value = self.ba.age
             elif name == 'conformal_age':
@@ -1503,6 +1517,7 @@ cdef class Class:
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.sp.sigma8
+
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
