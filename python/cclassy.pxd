@@ -57,6 +57,8 @@ cdef extern from "class.h":
         double Omega0_fld
         double w0_fld
         double wa_fld
+        double q_fld
+        double zt_fld
         double cs2_fld
         double Omega0_ur
         double Omega0_dcdmdr
