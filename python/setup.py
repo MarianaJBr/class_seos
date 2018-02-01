@@ -35,10 +35,12 @@ setup(
     url='http://www.class-code.net',
     cmdclass={'build_ext': build_ext},
     ext_modules=[Extension("classy", ["classy.pyx"],
-                           include_dirs=[nm.get_include(), "../include"],
+                           include_dirs=[nm.get_include(), "../include",
+                                         "/Users/mariannejbr/codes/gsl-2.4/gslbuilds/include"],
                            libraries=liblist,
-                           library_dirs=["../", GCCPATH],
-                           extra_link_args=['-lgomp'],
+                           library_dirs=["../", GCCPATH,
+                                         "/Users/mariannejbr/codes/gsl-2.4/gslbuilds/lib"],
+                           extra_link_args=['-lgomp','-lgsl'],
                            )],
     #data_files=[('bbn', ['../bbn/sBBN.dat'])]
 )
