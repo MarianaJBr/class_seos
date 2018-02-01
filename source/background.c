@@ -459,17 +459,16 @@ int background_functions(
 }
 
 
-
+/* mjb:seos */
 /**
  * Integrand for the fluid equation of state. This function is intended to be
  * used with GSL integration routines.
  *
- * @param lna           Input: current value of scale factor
+ * @param lna           Input: natural log of current value of scale factor
  * @param params        Input: pointer to the structure with the Eos
  *                      parameters.
- * @return The value of the equation of state.
+ * @return The value of the integrand for the time dependent part of eos.
  */
-/* mjb:seos: insert the integral of w(a) HERE*/
 /* integral_fld = 3*integral_aini^a0{(1+w(a')/(a')da'} which can be put in terms of u=lna
    as integral_fld = 3*integral_lnaini^lna0{1+w(exp(lna'))dlna'} */
 double background_w_fl_i(
@@ -485,8 +484,6 @@ double background_w_fl_i(
     double q = args->q_fld;
     double zt = args->zt_fld;
 
-    //return 1. / (1. + pow(zt * exp(lna) / (1. - exp(lna)), q));
-    //return wa * pow(1. - lna, q) / (pow((lna * zt), q) + pow(1. - lna, q) * lna);
     return wa * pow(1 - exp(lna), q) / (pow(zt * exp(lna), q) + pow(1 - exp(lna), q));
 }
 
@@ -1881,7 +1878,7 @@ int background_solve(
  * @return the error status
  */
 
-/*mjb:seos: we need to add the integral of the w(a) inside this structure*/
+/* mjb:seos: we need to add the integral of the w(a) inside this function */
 int background_initial_conditions(
         struct precision *ppr,
         struct background *pba,
@@ -2005,8 +2002,8 @@ int background_initial_conditions(
     calling background_w_fld */
 
         /*local variables definition */
-        //double w0 = pba->w0_fld;
-
+        double w0 = pba->w0_fld;
+        double integral_seos;
         /* Integrator variables */
         double quad_result, error;
         double eps_abs = 1e-6; //mjb: made this values smaller//
@@ -2029,13 +2026,14 @@ int background_initial_conditions(
         integrand_spec.params = &i_args;
         integrand_spec.function = &background_w_fl_i;
 
-        /*integral --> result_integral*/
+        /* integral --> result_integral */
         gsl_integration_qag(&integrand_spec, log(1.0), log(a),
                             eps_abs, eps_rel, max_iter, GSL_INTEG_GAUSS61,
                             ws, &quad_result, &error);
 
-        integral_fld = quad_result;
-
+        integral_seos = quad_result;
+        // TODO check this sign!
+        integral_fld = integral_seos + 3 * (1. + w0) * log(a); //mjb:seos
         /* rho_fld at initial time */
         pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
 
