@@ -2911,10 +2911,12 @@ int input_default_params(
   pba->a_today = 1.;
   pba->w0_fld=-1.;
   pba->wa_fld=0.;
+  pba->q_fld=1.;
+  pba->zt_fld=1.;
   pba->cs2_fld=1.;
   pba->use_ppf = _TRUE_;
   pba->c_gamma_over_c_fld = 0.4;
-
+/* mjb:seos */
   pba->shooting_failed = _FALSE_;
 
   /** - thermodynamics structure */
