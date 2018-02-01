@@ -1018,6 +1018,8 @@ int input_read_parameters(
   if (pba->Omega0_fld != 0.) {
     class_read_double("w0_fld",pba->w0_fld);
     class_read_double("wa_fld",pba->wa_fld);
+    class_read_double("q_fld",pba->q_fld);
+    class_read_double("zt_fld",pba->zt_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
 
     class_call(parser_read_string(pfc,
