@@ -270,7 +270,6 @@ int background_functions(
    * its derivative => 'dw_over_da'
    * and its integra => 'integral_fld*/
     double w_fld, dw_over_da, integral_fld;
-    /*TODO: check mjb:seos: maybe we need to declare inside this background_functions structure the variables again*/
     /* scale factor */
     double a;
     /* scalar field quantities */
@@ -1836,6 +1835,17 @@ int background_solve(
         printf(" -> conformal age = %f Mpc\n", pba->conformal_age);
     }
 
+    if (pba->background_verbose > 1) {
+        if (pba->has_fld == _TRUE_) {
+            printf("    Equation of state of Dark Energy used: SEOS \n");
+            printf("    w(a) = w0 + wa*(a0-a)**q/((a*zt)**q+(a0-a)**q) with the following parameters");
+            printf("     -> w0_fld = %f\n", pba->w0_fld);
+            printf("     -> wa_fld = %f\n", pba->w0_fld);
+            printf("     -> q_fld = %f\n", pba->q_fld);
+            printf("     -> zt_fld = %f\n", pba->zt_fld);
+        }
+    }
+
     if (pba->background_verbose > 2) {
         if ((pba->has_dcdm == _TRUE_) && (pba->has_dr == _TRUE_)) {
             printf("    Decaying Cold Dark Matter details: (DCDM --> DR)\n");
@@ -2006,8 +2016,8 @@ int background_initial_conditions(
         double integral_seos;
         /* Integrator variables */
         double quad_result, error;
-        double eps_abs = 1e-6; //mjb: made this values smaller//
-        double eps_rel = 1e-6;
+        double eps_abs = 1e-12; //mjb: made this values smaller//
+        double eps_rel = 1e-16;
         size_t max_iter = 1000;
 
         // GSL data structures.
@@ -2015,7 +2025,6 @@ int background_initial_conditions(
                 = gsl_integration_workspace_alloc(max_iter);
 
         /*mjb: at this point I need to define the background_w_fl_i*/
-        /* oarodriguez: not at this point, see background_w_fl_i function. */
         // Here we initialize the integrand arguments.
         background_w_fl_i_args i_args;
         i_args.wa_fld = pba->wa_fld;
