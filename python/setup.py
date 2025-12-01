@@ -36,11 +36,11 @@ setup(
     cmdclass={'build_ext': build_ext},
     ext_modules=[Extension("classy", ["classy.pyx"],
                            include_dirs=[nm.get_include(), "../include",
-                                         "/Users/mariannejbr/codes/gsl-2.4/gslbuilds/include"],
+                                         "/opt/apps/libraries/intel_14.0.1/gsl_2.3/include"],
                            libraries=liblist,
                            library_dirs=["../", GCCPATH,
-                                         "/Users/mariannejbr/codes/gsl-2.4/gslbuilds/lib"],
-                           extra_link_args=['-lgomp','-lgsl'],
+                                         "/opt/apps/libraries/intel_14.0.1/gsl_2.3/lib"],
+                           extra_link_args=['-lgomp','-lgsl', '-lgslcblas'],
                            )],
     #data_files=[('bbn', ['../bbn/sBBN.dat'])]
 )

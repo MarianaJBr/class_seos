@@ -519,9 +519,16 @@ int background_w_fld(
     double zt = pba->zt_fld;
 
 
-    *w_fld = w0 + wa * pow((a0 - a), q) / (pow(a * zt, q) + pow((a0 - a), q));
-//    *w_fld = pba->w0_fld + pba->wa_fld * pow((pba->a_today - a), pba->q_fld)
-//                           / (pow(a * pba->zt_fld, pba->q_fld) + pow((pba->a_today - a), pba->q_fld));
+    /**w_fld =  w0 + wa * pow((a0 - a), q) / (pow(a * zt, q) + pow((a0 - a), q));*/
+
+    /* mjb: seos: add conditional to avoid divergence */
+    if (a > pba->a_today){
+        *w_fld =  w0;
+        } else
+        {
+        *w_fld =  w0 + wa * pow((a0 - a), q) / (pow(a * zt, q) + pow((a0 - a), q));
+        }
+
 
     /** - then, give the corresponding analytic derivative dw/da (used
         by perturbation equations; we could compute it numerically,
@@ -532,15 +539,18 @@ int background_w_fld(
     /* numerator = a0*wa*q*(a*zt)^q*(a0-a)^(q-1))  */
     /* denominator = a ( (a0-a)^q + (a*zt)^q )^2  */
     /* dw/da = -numerator/denominator  */
-
-    /**dw_over_da_fld = - pba->wa_fld / pba->a_today;*/
-//    *dw_over_da_fld =
-//            -(pba->a_today * pba->wa_fld * pba->q_fld * (pow(a * pba->zt_fld, pba->q_fld)) *
-//              (pow((pba->a_today - a), (pba->q_fld - 1.)))) /
-//            (a * pow((pow((a * pba->zt_fld), pba->q_fld) + pow((pba->a_today - a), pba->q_fld)), 2.));
-    *dw_over_da_fld =
+    /**dw_over_da_fld =
             -(a0 * wa * q * (pow(a * zt, q)) * (pow((a0 - a), (q - 1.)))) /
-            (a * pow((pow((a * zt), q) + pow((a0 - a), q)), 2.));
+            (a * pow((pow((a * zt), q) + pow((a0 - a), q)), 2.));*/
+
+   /* mjb:seos: add conditional to avoid divergence. TODO: necessary ?*/
+    if(a>pba->a_today){
+        *dw_over_da_fld = 0.;
+    } else{
+        *dw_over_da_fld =
+                -(a0 * wa * q * (pow(a * zt, q)) * (pow((a0 - a), (q - 1.)))) /
+                (a * pow((pow((a * zt), q) + pow((a0 - a), q)), 2.));
+    }
 
     /** - finally, give the analytic solution of the following integral:
         \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
@@ -1840,7 +1850,7 @@ int background_solve(
             printf("    Equation of state of Dark Energy used: SEOS \n");
             printf("    w(a) = w0 + wa*(a0-a)**q/((a*zt)**q+(a0-a)**q) with the following parameters");
             printf("     -> w0_fld = %f\n", pba->w0_fld);
-            printf("     -> wa_fld = %f\n", pba->w0_fld);
+            printf("     -> wa_fld = %f\n", pba->wa_fld);
             printf("     -> q_fld = %f\n", pba->q_fld);
             printf("     -> zt_fld = %f\n", pba->zt_fld);
         }
